@@ -1,3 +1,4 @@
+import { preferFastCodecs, tuneCall } from './tune'
 import Peer from 'peerjs'
 import type { DataConnection, MediaConnection } from 'peerjs'
 import type { Kind, Msg, Person, Profile } from './types'
@@ -122,7 +123,9 @@ export class Room {
 
   private callKind(id: string, kind: Kind, stream: MediaStream) {
     if (!this.peer) return
-    this.trackCall(this.peer.call(id, stream, { metadata: { kind } }), kind, true)
+    const call = this.peer.call(id, stream, { metadata: { kind }, ...(kind === 'screen' ? { sdpTransform: preferFastCodecs } : {}) })
+    this.trackCall(call, kind, true)
+    if (kind === 'screen') tuneCall(call)
   }
 
   private trackCall(call: MediaConnection, kind: Kind, outgoing: boolean) {

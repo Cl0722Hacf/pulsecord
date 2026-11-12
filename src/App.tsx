@@ -1,3 +1,4 @@
+import { setScreenMode, type ScreenMode } from './tune'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, ClipboardEvent, CSSProperties } from 'react'
 import { Room } from './rtc'
@@ -42,7 +43,7 @@ function Vid({ stream, muted, volume, contain }: { stream: MediaStream; muted: b
   const r = useRef<HTMLVideoElement>(null)
   useEffect(() => { const v = r.current; if (v && v.srcObject !== stream) { v.srcObject = stream; void v.play().catch(() => undefined) } }, [stream])
   useEffect(() => { const v = r.current; if (v) { v.muted = muted; v.volume = Math.max(0, Math.min(1, volume)) } }, [muted, volume])
-  return <video ref={r} playsInline autoPlay muted={muted} className={contain ? 'contain' : ''} />
+  return <video ref={r} playsInline disablePictureInPicture autoPlay muted={muted} className={contain ? 'contain' : ''} />
 }
 
 export default function App() {
@@ -74,7 +75,7 @@ export default function App() {
   const [demoOn, setDemoOn] = useState(false)
   const [demoScr, setDemoScr] = useState<MediaStream | null>(null)
   const [showSet, setShowSet] = useState(false)
-  const [quality, setQuality] = useState<'720' | '1080'>('720')
+  const [quality, setQuality] = useState<ScreenMode>('720')
   const [devs, setDevs] = useState<{ mics: MediaDeviceInfo[]; cams: MediaDeviceInfo[] }>({ mics: [], cams: [] })
   const [micId, setMicId] = useState('')
   const [camId, setCamId] = useState('')
@@ -210,9 +211,9 @@ export default function App() {
     if (!navigator.mediaDevices.getDisplayMedia) { flash('Este dispositivo no permite compartir pantalla'); return }
     const hd = quality === '1080'
     try {
-      const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 60 }, width: { ideal: hd ? 1920 : 1280 }, height: { ideal: hd ? 1080 : 720 } }, audio: true })
-      const v = s.getVideoTracks()[0]; if (v) v.addEventListener('ended', stopScreen)
-      scrRef.current = s; setLocalScr(s); roomRef.current?.setLocal('screen', s); sfx('share')
+      const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: quality === '720-30' ? 30 : 60 }, width: { ideal: hd ? 1920 : 1280 }, height: { ideal: hd ? 1080 : 720 } }, audio: true })
+      const v = s.getVideoTracks()[0]; if (v) { v.contentHint = 'motion'; v.addEventListener('ended', stopScreen) }
+      setScreenMode(quality); scrRef.current = s; setLocalScr(s); roomRef.current?.setLocal('screen', s); sfx('share')
     } catch { flash('No se compartió la pantalla') }
   }
   const changeMic = async (id: string) => {
@@ -409,7 +410,7 @@ export default function App() {
             <h3>Ajustes de llamada</h3>
             <label>Micrófono<select value={micId} onChange={(e) => void changeMic(e.target.value)}><option value="">Predeterminado</option>{devs.mics.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Micrófono'}</option>)}</select></label>
             <label>Cámara<select value={camId} onChange={(e) => changeCam(e.target.value)}><option value="">Predeterminada</option>{devs.cams.map((d) => <option key={d.deviceId} value={d.deviceId}>{d.label || 'Cámara'}</option>)}</select></label>
-            <label>Calidad al compartir pantalla<select value={quality} onChange={(e) => setQuality(e.target.value as '720' | '1080')}><option value="720">720p · 60 FPS</option><option value="1080">1080p · 60 FPS</option></select></label>
+            <label>Calidad al compartir pantalla<select value={quality} onChange={(e) => setQuality(e.target.value as ScreenMode)}><option value="720">720p · 60 FPS</option><option value="1080">1080p · 60 FPS</option><option value="720-30">720p · 30 FPS Ultra Fluido / Juego</option></select></label>
             <button className="primary" onClick={() => setShowSet(false)}>Listo</button>
           </div>
         </div>

@@ -126,3 +126,5 @@ input:focus, select:focus { outline: 2px solid var(--accent); }
   .toast { bottom: 150px; }
   .vol { bottom: 34px; padding: 2px 6px; }
 }
+
+video{transform:translateZ(0);will-change:transform}
